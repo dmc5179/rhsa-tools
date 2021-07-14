@@ -2,6 +2,8 @@
 
 API_HOST="https://access.redhat.com/hydra/rest/securitydata"
 
+
+# Pull the list of all CVEs one page at a time
 page=1
 
 while true
@@ -27,6 +29,8 @@ for f in cve_*.json; do cat $f >> cve.json; done
 # Remove the page files
 rm -f cve_*.json
 
+
+# Pull the full details of each CVE if missing
 mkdir cves
 
 for cve in $(jq -r '.[] | select(.advisories | length > 0).CVE' cve.json)
@@ -35,6 +39,20 @@ do
   then
     curl -X GET "${API_HOST}/cve/${cve}.json" -o "cves/${cve}.json"
   fi
+done
+
+# Check if each CVE belongs to a product that we are currently mirroring
+mkdir cves/patched
+for cve in cves/*.json
+do
+  while read -r product
+  do
+    if grep -q "${product}" product_list.txt
+    then
+      cp "${cve}" cves/patched/
+      break
+    fi
+  done < <(jq -r '.affected_release[].product_name' "${cve}" | sort -u)
 done
 
 exit 0
