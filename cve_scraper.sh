@@ -29,8 +29,9 @@ for f in cve_*.json; do cat $f >> cve.json; done
 # Remove the page files
 rm -f cve_*.json
 
+exit 0
 
-# Pull the full details of each CVE if missing
+# Pull the full details of each CVE if there is an RHSA which means there's a patch or fix for the issue
 mkdir cves
 
 for cve in $(jq -r '.[] | select(.advisories | length > 0).CVE' cve.json)
@@ -40,6 +41,8 @@ do
     curl -X GET "${API_HOST}/cve/${cve}.json" -o "cves/${cve}.json"
   fi
 done
+
+exit 0
 
 # Check if each CVE belongs to a product that we are currently mirroring
 mkdir cves/patched
