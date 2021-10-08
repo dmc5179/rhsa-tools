@@ -44,6 +44,9 @@ done
 
 exit 0
 
+
+# The section below has not been tested and I do not have a full list of products being mirrored yet
+
 # Check if each CVE belongs to a product that we are currently mirroring
 mkdir cves/patched
 for cve in cves/*.json
