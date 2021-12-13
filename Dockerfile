@@ -8,6 +8,7 @@ ADD ./requirements.txt ./requirements.txt
 ADD ./app ./
 ADD ./cvrfs ./ 
 ADD ./cves ./
+ADD https://access.redhat.com/security/data/metrics/cvemap.xml ./
 
 RUN chown -R 1001:0 ./
 USER 1001
