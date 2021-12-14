@@ -1,14 +1,11 @@
-async def app(scope, receive, send):
-    assert scope['type'] == 'http'
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.staticfiles import StaticFiles
 
-    await send({
-        'type': 'http.response.start',
-        'status': 200,
-        'headers': [
-            [b'content-type', b'text/plain'],
-        ],
-    })
-    await send({
-        'type': 'http.response.body',
-        'body': b'Hello, world!',
-    })
+
+routes = [
+    Mount('/hydra/rest/securitydata/cve', app=StaticFiles(directory='./hydra/rest/securitydata/cve/'), name="cve"),
+    Mount('/hydra/rest/securitydata/cvrf', app=StaticFiles(directory='./hydra/rest/securitydata/cvrf/'), name="cvrf")
+]
+
+app = Starlette(routes=routes)
