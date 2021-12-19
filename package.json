@@ -1,0 +1,24 @@
+{
+  "name": "rhsa-tools",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Tools and Scripts for interacting with the Red Hat Security API",
+  "main": "fetch_cve.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dmc5179/rhsa-tools.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dmc5179/rhsa-tools/issues"
+  },
+  "homepage": "https://github.com/dmc5179/rhsa-tools#readme",
+  "dependencies": {
+    "node-fetch": "^3.1.0"
+  }
+}
