@@ -3,29 +3,23 @@ const fs = require('fs');
 
 (async () => {
   var myArgs = process.argv.slice(2);
-  const browser = await puppeteer.connect({ browserWSEndpoint: myArgs[0], defaultViewport: { width: 1280, height: 1024 } });
+  const browser = await puppeteer.connect({ browserWSEndpoint: myArgs[0], defaultViewport: { width: 1920, height: 1080 } });
 
-  for (let j = 1; j < myArgs.length; j++) {
-
-    console.log("Process CVE: %s", myArgs[j]);
+    console.log("Process CVE: %s", myArgs[1]);
 
     const page = await browser.newPage();
-    await page.goto('https://access.redhat.com/security/cve/' + myArgs[j]);
+    await page.goto('https://access.redhat.com/security/cve/' + myArgs[1], {waitUntil: 'networkidle2'});
+
+    //await page.waitForNavigation(10);
 
     const html = await page.content()
 
-    fs.writeFile('access/' + myArgs[j] + '.html', html, err => {
-      if (err) {
-        console.error(err);
-        //return
-      }
-      //file written successfully
-    })
+    await fs.writeFileSync('access/' + myArgs[1] + '.html', html);
+
+    //await page.pdf({ path: 'access/' + myArgs[1] + '.pdf', format: 'a4' });
 
     await page.close();
 
-  }
-
-  await browser.disconnect();
+    await browser.disconnect();
 })();
 
