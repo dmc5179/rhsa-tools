@@ -10,6 +10,11 @@ from starlette.responses import JSONResponse
 import uvicorn
 import json
 
+#f = open("./hydra/rest/securitydata/cve.json", "r")
+f = open("./cve.json", "r")
+cve_json = json.load(f)
+f.close()
+
 #with open("./hydra/rest/securitydata/cve.json", "r") as read_file:
 #    data = json.load(read_file)
 
@@ -60,8 +65,23 @@ async def errata(request):
     #content_type, _ = guess_type(filename)
     return Response(content, media_type='html')
 
-#@app.route("/security/cve/{id}")
-@app.route("hydra/rest/securitydata/cvrf/{id}.json")
+@app.route("/security/cve/{id}")
+async def cve_html(request):
+    content = '%s %s' % (request.method, request.url.path)
+    content = os.path.basename(os.path.normpath(content))
+
+    filename = './access.redhat.com/security/cve/' + content
+
+    if not os.path.isfile(filename):
+        return Response(status_code=404)
+
+    with open(filename) as f:
+        content = f.read()
+
+    #content_type, _ = guess_type(filename)
+    return Response(content, media_type='html')
+
+@app.route("/hydra/rest/securitydata/cvrf/{id}.json")
 async def cvrf(request):
     qp = request.query_params
 
@@ -70,7 +90,38 @@ async def cvrf(request):
 
     return JSONResponse({k: v for (k, v) in qp.items()})
 
-@app.route("hydra/rest/securitydata/cve/{id}.json")
+@app.route("/hydra/rest/securitydata/cve.json")
+async def cve_search(request):
+    before=""
+    after=""
+    ids=""
+    bug=""
+    advisory=""
+    severity="low"
+    package=""
+    product=""
+    cwe=""
+    cvss_score=""
+    cvss3_score=""
+    page=1
+    per_page=1000
+    created_days_ago=""
+
+    results=[]
+
+    for key in cve_json:
+      if severity and key['severity'] != severity:
+        continue
+      results.append(key);
+
+    #qp = request.query_params
+    #print(str(qp))
+    ## > foo=bar
+
+    #return JSONResponse({k: v for (k, v) in qp.items()})
+    return JSONResponse(results)
+
+@app.route("/hydra/rest/securitydata/cve/{id}.json")
 async def cve(request):
     qp = request.query_params
 
