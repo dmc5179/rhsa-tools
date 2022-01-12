@@ -10,35 +10,26 @@ from starlette.responses import JSONResponse
 import uvicorn
 import json
 
-#f = open("./hydra/rest/securitydata/cve.json", "r")
-f = open("./cve.json", "r")
+f = open("./hydra/rest/securitydata/cve.json", "r")
 cve_json = json.load(f)
 f.close()
-
-#with open("./hydra/rest/securitydata/cve.json", "r") as read_file:
-#    data = json.load(read_file)
-
-#async def cve(request)
-#  return PlainTextResponse("In CVE section")
 
 templates = Jinja2Templates(directory='templates')
 
 app = Starlette(debug=True)
-#app.mount('/static', StaticFiles(directory='statics'), name='static')
-#app.mount('/solutions', StaticFiles(directory='access.redhat.com/solutions/'), name='solutions')
 
-#@app.route('/')
-#async def homepage(request):
-#    template = "index.html"
-#    context = {"request": request}
-#    return templates.TemplateResponse(template, context)
+@app.route('/')
+async def homepage(request):
+    template = "index.html"
+    context = {"request": request}
+    return templates.TemplateResponse(template, context)
 
 @app.route("/solutions/{id}")
 async def example(request):
     content = '%s %s' % (request.method, request.url.path)
     content = os.path.basename(os.path.normpath(content))
 
-    filename = './access.redhat.com/solutions/' + content
+    filename = './solutions/' + content
 
     if not os.path.isfile(filename):
         return Response(status_code=404)
@@ -54,7 +45,7 @@ async def errata(request):
     content = '%s %s' % (request.method, request.url.path)
     content = os.path.basename(os.path.normpath(content))
 
-    filename = './access.redhat.com/errata/' + content
+    filename = './errata/' + content
 
     if not os.path.isfile(filename):
         return Response(status_code=404)
@@ -70,7 +61,7 @@ async def cve_html(request):
     content = '%s %s' % (request.method, request.url.path)
     content = os.path.basename(os.path.normpath(content))
 
-    filename = './access.redhat.com/security/cve/' + content
+    filename = './security/cve/' + content
 
     if not os.path.isfile(filename):
         return Response(status_code=404)
@@ -159,4 +150,4 @@ async def server_error(request, exc):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+    uvicorn.run(app, host='0.0.0.0', port=8080)
