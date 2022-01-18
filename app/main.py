@@ -10,6 +10,7 @@ from starlette.responses import JSONResponse
 import uvicorn
 import json
 import jmespath
+import copy
 
 f = open("/tmp/rhsa-tools/cve_page1.json", "r")
 cve_json = json.load(f)
@@ -93,6 +94,7 @@ async def select_after(after):
   print("Selecting after: " + after)
 
 async def select_ids(ids):
+  print("Selecting by id: " + ids)
   cves = ids.split(',')
   if len(cves) == 1:
     return "[?CVE=='" + cves[0] + "']"
@@ -100,79 +102,117 @@ async def select_ids(ids):
     return "unsupported"
   #return ".[] | select(.CVE == \"" + ids + "\")"
 
-async def select_bug(bugs):
-  print("Selecting by ")
+async def select_bug(keys):
+  print("Selecting by bug:" + keys)
+  bugs = keys.split(',')
+  if len(bugs) == 1:
+    return "[?bugzilla=='" + bugs[0] + "']"
+  else:
+    return "unsupported"
 
-async def select_advisory(advisories):
-  print("Selecting by ")
+async def select_advisory(keys):
+  print("Selecting by advisory: " + keys)
+  advisories = keys.split(',')
+  if len(advisories) == 1:
+    return "[?advisories=='" + advisories[0] + "']"
+  else:
+    return "unsupported"
 
-async def select_severity(severities):
-  print("Selecting by ")
+async def select_severity(keys):
+  print("Selecting by severity: " + keys)
+  severities = keys.split(',')
+  if len(severities) == 1:
+    return "[?severity=='" + severities[0] + "']"
+  else:
+    return "unsupported"
 
-async def select_package(packages):
-  print("Selecting by ")
+async def select_package(keys):
+  print("Selecting by package: " + keys)
+  packages = keys.split(',')
+  if len(packages) == 1:
+    return "[?affected_packages=='" + packages[0] + "']"
+  else:
+    return "unsupported"
 
-async def select_product(products):
-  print("Selecting by ")
+# Much more complex. Needs to lookup the CVE full details
+async def select_product(keys):
+  print("Selecting by product: " + keys)
+  products = keys.split(',')
+  if len(products) == 1:
+    return "[?=='" + products[0] + "']"
+  else:
+    return "unsupported"
 
-async def select_cwe(cwes):
-  print("Selecting by ")
+async def select_cwe(kryd):
+  print("Selecting by cwe: " + keys)
+  cwes = keys.split(',')
+  if len(cwes) == 1:
+    return "[?CWE=='CWE-" + cwes[0] + "']"
+  else:
+    return "unsupported"
 
 async def select_cvss(cvss_score):
-  print("Selecting by ")
+  print("Selecting by cvss score: " + cvss_score)
 
 async def select_cvss3(cvss3_score):
-  print("Selecting by ")
+  print("Selecting by cvss3 score: " + cvss3_score)
 
 async def select_create(created_days_ago):
-  print("Selecting by ")
+  print("Selecting by created days ago: "+ created_days_ago)
 
+async def paginate(page, per_page)
+  print("Pagination is not yet supported")
 
 @app.route("/hydra/rest/securitydata/cve.json")
 async def cve_search(request):
     qp = request.query_params
     jmes_qry = ""
-    #jq_qry = ""
-    #jq_args = ""
+    response = copy.deepcopy(cve_json)
+    page = ""
+    per_page = 1000
 
 # Build jq select statement
     for key in qp.keys():
+      print("REST param: " + key)
+      jmes_qry = ""
       if key == "before":
-        jmes_qry += await select_before(qp['before'])
-        #jq_qry += await select_before(qp['before'])
-        #jq_args += '--arg e ' + qp['before']
-      if key == "after":
-        jmes_qry += await select_after(qp['after'])
-      if key == "ids":
-        jmes_qry += await select_ids(qp['ids'])
-      if key == "bug":
-        jmes_qry += await select_bug(qp['bug'])
-      if key == "advisory":
-        jmes_qry += await select_advisory(qp['advisory'])
-      if key == "severity":
-        jmes_qry += await select_severity(qp['severity'])
-      if key == "package":
-        jmes_qry += await select_package(qp['package'])
-      if key == "product":
-        jmes_qry += await select_product(qp['product'])
-      if key == "cwe":
-        jmes_qry += await select_cwe(qp['cwe'])
-      if key == "cvss_score":
-        jmes_qry += await select_cvss(qp['cvss_score'])
-      if key == "cvss3_score":
-        jmes_qry += await select_cvss3(qp['cvss3_score'])
-      if key == "created_days_ago":
-        jmes_qry += await select_create(qp['created_days_ago'])
+        jmes_qry = await select_before(qp['before'])
+      elif key == "after":
+        jmes_qry = await select_after(qp['after'])
+      elif key == "ids":
+        jmes_qry = await select_ids(qp['ids'])
+      elif key == "bug":
+        jmes_qry = await select_bug(qp['bug'])
+      elif key == "advisory":
+        jmes_qry = await select_advisory(qp['advisory'])
+      elif key == "severity":
+        jmes_qry = await select_severity(qp['severity'])
+      elif key == "package":
+        jmes_qry = await select_package(qp['package'])
+      #if key == "product":
+      #  jmes_qry = await select_product(qp['product'])
+      elif key == "cwe":
+        jmes_qry = await select_cwe(qp['cwe'])
+      elif key == "cvss_score":
+        jmes_qry = await select_cvss(qp['cvss_score'])
+      elif key == "cvss3_score":
+        jmes_qry = await select_cvss3(qp['cvss3_score'])
+      elif key == "created_days_ago":
+        jmes_qry = await select_create(qp['created_days_ago'])
+      elif key == "page":
+        page = key
+      elif key == "per_page":
+        per_page = key
+      else:
+        print(key + " is not a valid query parameter for this API ")
 
+      if len(jmes_qry) > 0:
+        response = jmespath.search(jmes_qry, response)
 
-    response = jmespath.search(jmes_qry, cve_json)
+    # Paginate response
+    if len(page) > 0:
+      response = await paginate(page, per_page)
 
-
-####
-# pageniate if needed
-    page=1
-    per_page=1000
-####
     return JSONResponse(response)
 
 @app.route("/hydra/rest/securitydata/cve/{id}.json")
