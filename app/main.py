@@ -1,5 +1,4 @@
 import os
-import subprocess
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
@@ -10,15 +9,13 @@ from starlette.templating import Jinja2Templates
 from starlette.responses import JSONResponse
 import uvicorn
 import json
-import pyjq
+import jmespath
 
-jq_cmd = "jq -c -r"
-
-#f = open("./data/cve.json", "r")
-#cve_json = json.load(f)
-#f.close()
-with open('./data/cve_jq.json') as f:
-    cve_json = [json.loads(line) for line in f]
+f = open("/tmp/rhsa-tools/cve_page1.json", "r")
+cve_json = json.load(f)
+f.close()
+#with open('./data/cve_jq.json') as f:
+#    cve_json = [json.loads(line) for line in f]
 
 templates = Jinja2Templates(directory='templates')
 
@@ -89,71 +86,87 @@ async def cvrf(request):
 
 async def select_before(before):
   print("Selecting before: " + before)
-  return 'map(. | select(.public_date |. != null and . != "")) | map(select(.public_date | . <= $e + "z")) | select(length>0)'
+  return "[?public_date<='2016-10-21']"
+  #return 'map(. | select(.public_date |. != null and . != "")) | map(select(.public_date | . <= $e + "z")) | select(length>0)'
 
 async def select_after(after):
   print("Selecting after: " + after)
 
 async def select_ids(ids):
-  return ".[] | select(.CVE == \"" + ids + "\")"
+  cves = ids.split(',')
+  if len(cves) == 1:
+    return "[?CVE=='" + cves[0] + "']"
+  else:
+    return "unsupported"
+  #return ".[] | select(.CVE == \"" + ids + "\")"
+
+async def select_bug(bugs):
+  print("Selecting by ")
+
+async def select_advisory(advisories):
+  print("Selecting by ")
+
+async def select_severity(severities):
+  print("Selecting by ")
+
+async def select_package(packages):
+  print("Selecting by ")
+
+async def select_product(products):
+  print("Selecting by ")
+
+async def select_cwe(cwes):
+  print("Selecting by ")
+
+async def select_cvss(cvss_score):
+  print("Selecting by ")
+
+async def select_cvss3(cvss3_score):
+  print("Selecting by ")
+
+async def select_create(created_days_ago):
+  print("Selecting by ")
+
 
 @app.route("/hydra/rest/securitydata/cve.json")
 async def cve_search(request):
     qp = request.query_params
-    jq_qry = ""
-    jq_args = ""
+    jmes_qry = ""
+    #jq_qry = ""
+    #jq_args = ""
 
 # Build jq select statement
     for key in qp.keys():
       if key == "before":
-        jq_qry += await select_before(qp['before'])
-        jq_args += '--arg e ' + qp['before']
+        jmes_qry += await select_before(qp['before'])
+        #jq_qry += await select_before(qp['before'])
+        #jq_args += '--arg e ' + qp['before']
       if key == "after":
-        jq_qry += await select_after(qp['after'])
+        jmes_qry += await select_after(qp['after'])
       if key == "ids":
-        jq_qry += await select_ids(qp['ids'])
+        jmes_qry += await select_ids(qp['ids'])
       if key == "bug":
-        jq_qry += await select_(qp[''])
+        jmes_qry += await select_bug(qp['bug'])
       if key == "advisory":
-        jq_qry += await select_(qp[''])
+        jmes_qry += await select_advisory(qp['advisory'])
       if key == "severity":
-        jq_qry += await select_(qp[''])
+        jmes_qry += await select_severity(qp['severity'])
       if key == "package":
-        jq_qry += await select_(qp[''])
+        jmes_qry += await select_package(qp['package'])
       if key == "product":
-        jq_qry += await select_(qp[''])
+        jmes_qry += await select_product(qp['product'])
       if key == "cwe":
-        jq_qry += await select_(qp[''])
+        jmes_qry += await select_cwe(qp['cwe'])
       if key == "cvss_score":
-        jq_qry += await select_(qp[''])
+        jmes_qry += await select_cvss(qp['cvss_score'])
       if key == "cvss3_score":
-        jq_qry += await select_(qp[''])
+        jmes_qry += await select_cvss3(qp['cvss3_score'])
       if key == "created_days_ago":
-        jq_qry += await select_(qp[''])
+        jmes_qry += await select_create(qp['created_days_ago'])
 
-# build subprocess command
-    cmd = jq_cmd + " "
-    if len(jq_args) > 0:
-      cmd += jq_args + " "
 
-    cmd += "'" + jq_qry + "'" + " ./data/cve_jq.json"
-    print("Running cmd: " + cmd)
-    results = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+    response = jmespath.search(jmes_qry, cve_json)
 
-    if results.stdout[0] == '[':
-      response = json.dumps(results.stdout)
-      #print(results.stdout.split())
-    else:
-      response = json.loads(results.stdout)
-      print("Object")
-
-    # Some queries result in a single json object. Some queries result in a json array
-    # with multiple top level objets. json.loads cannot handle mutliple top level objects
-    # So, some queries reply with {} and some with [{},{}]
-    # The second example above is what json.loads cannot handle
-    # Supposedly [{},{}] is not valid json but its hard to think jq returns invalid json
-    #response = json.loads(data_array)
-######
 
 ####
 # pageniate if needed
