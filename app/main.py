@@ -12,6 +12,8 @@ import uvicorn
 import json
 import pyjq
 
+jq_cmd = "jq -c -r"
+
 #f = open("./data/cve.json", "r")
 #cve_json = json.load(f)
 #f.close()
@@ -101,6 +103,7 @@ async def cve_search(request):
     jq_qry = ""
     jq_args = ""
 
+# Build jq select statement
     for key in qp.keys():
       if key == "before":
         jq_qry += await select_before(qp['before'])
@@ -128,15 +131,35 @@ async def cve_search(request):
       if key == "created_days_ago":
         jq_qry += await select_(qp[''])
 
-# execute query
-    jq_cmd = "jq -c -r '" + jq_qry + "'" + " ./data/cve_jq.json"
-    results = subprocess.run(jq_cmd, shell=True, check=True, capture_output=True, text=True)
-    response = json.loads(results.stdout)
+# build subprocess command
+    cmd = jq_cmd + " "
+    if len(jq_args) > 0:
+      cmd += jq_args + " "
 
+    cmd += "'" + jq_qry + "'" + " ./data/cve_jq.json"
+    print("Running cmd: " + cmd)
+    results = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+
+    if results.stdout[0] == '[':
+      response = json.dumps(results.stdout)
+      #print(results.stdout.split())
+    else:
+      response = json.loads(results.stdout)
+      print("Object")
+
+    # Some queries result in a single json object. Some queries result in a json array
+    # with multiple top level objets. json.loads cannot handle mutliple top level objects
+    # So, some queries reply with {} and some with [{},{}]
+    # The second example above is what json.loads cannot handle
+    # Supposedly [{},{}] is not valid json but its hard to think jq returns invalid json
+    #response = json.loads(data_array)
+######
+
+####
 # pageniate if needed
     page=1
     per_page=1000
-
+####
     return JSONResponse(response)
 
 @app.route("/hydra/rest/securitydata/cve/{id}.json")
