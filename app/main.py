@@ -93,10 +93,25 @@ async def select_before(before):
 async def select_after(after):
   print("Selecting after: " + after)
 
+async def select_value(key, values):
+  v = values.split(',')
+  qry = "[?"+key+"=='" + v[0] + "'"
+
+  if len(v) > 1:
+    for i in v[1:]:
+      qry += "|| "+key+" =='" + i + "'"
+
+  qry += "]"
+
+  print("Selecting by "+key+": " + values)
+  print("Query: " + qry )
+
+  return qry
+
 async def select_ids(ids):
-  print("Selecting by id: " + ids)
   cves = ids.split(',')
   qry = "[?CVE=='" + cves[0] + "'"
+
   if len(cves) > 1:
     for cve in cves[1:]:
       qry += "|| CVE =='" + cve + "'"
@@ -107,31 +122,6 @@ async def select_ids(ids):
   print("Query: " + qry )
 
   return qry
-
-
-async def select_bug(keys):
-  print("Selecting by bug:" + keys)
-  bugs = keys.split(',')
-  if len(bugs) == 1:
-    return "[?bugzilla=='" + bugs[0] + "']"
-  else:
-    return "unsupported"
-
-async def select_advisory(keys):
-  print("Selecting by advisory: " + keys)
-  advisories = keys.split(',')
-  if len(advisories) == 1:
-    return "[?advisories=='" + advisories[0] + "']"
-  else:
-    return "unsupported"
-
-async def select_severity(keys):
-  print("Selecting by severity: " + keys)
-  severities = keys.split(',')
-  if len(severities) == 1:
-    return "[?severity=='" + severities[0] + "']"
-  else:
-    return "unsupported"
 
 async def select_package(keys):
   print("Selecting by package: " + keys)
@@ -147,14 +137,6 @@ async def select_product(keys):
   products = keys.split(',')
   if len(products) == 1:
     return "[?=='" + products[0] + "']"
-  else:
-    return "unsupported"
-
-async def select_cwe(kryd):
-  print("Selecting by cwe: " + keys)
-  cwes = keys.split(',')
-  if len(cwes) == 1:
-    return "[?CWE=='CWE-" + cwes[0] + "']"
   else:
     return "unsupported"
 
@@ -184,28 +166,28 @@ async def cve_search(request):
       jmes_qry = ""
       if key == "before":
         jmes_qry = await select_before(qp['before'])
-      elif key == "after":
-        jmes_qry = await select_after(qp['after'])
+      #elif key == "after":
+      #  jmes_qry = await select_after(qp['after'])
       elif key == "ids":
-        jmes_qry = await select_ids(qp['ids'])
+        jmes_qry = await select_value("CVE", qp['ids'])
       elif key == "bug":
-        jmes_qry = await select_bug(qp['bug'])
+        jmes_qry = await select_value("bugzilla", qp['bug'])
       elif key == "advisory":
-        jmes_qry = await select_advisory(qp['advisory'])
+        jmes_qry = await select_value("advisories", qp['advisory'])
       elif key == "severity":
-        jmes_qry = await select_severity(qp['severity'])
-      elif key == "package":
-        jmes_qry = await select_package(qp['package'])
+        jmes_qry = await select_value("severity", qp['severity'])
+      #elif key == "package":
+      #  jmes_qry = await select_package(qp['package'])
       #if key == "product":
       #  jmes_qry = await select_product(qp['product'])
       elif key == "cwe":
-        jmes_qry = await select_cwe(qp['cwe'])
-      elif key == "cvss_score":
-        jmes_qry = await select_cvss(qp['cvss_score'])
-      elif key == "cvss3_score":
-        jmes_qry = await select_cvss3(qp['cvss3_score'])
-      elif key == "created_days_ago":
-        jmes_qry = await select_create(qp['created_days_ago'])
+        jmes_qry = await select_value("CWE", qp['cwe'])
+      #elif key == "cvss_score":
+      #  jmes_qry = await select_cvss(qp['cvss_score'])
+      #elif key == "cvss3_score":
+      #  jmes_qry = await select_cvss3(qp['cvss3_score'])
+      #elif key == "created_days_ago":
+      #  jmes_qry = await select_create(qp['created_days_ago'])
       elif key == "page":
         page = key
       elif key == "per_page":
