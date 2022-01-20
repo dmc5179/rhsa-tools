@@ -12,7 +12,7 @@ import json
 import jmespath
 import copy
 
-f = open("/tmp/rhsa-tools/cve_page1.json", "r")
+f = open("./data/cve.json", "r")
 cve_json = json.load(f)
 f.close()
 #with open('./data/cve_jq.json') as f:
@@ -96,11 +96,18 @@ async def select_after(after):
 async def select_ids(ids):
   print("Selecting by id: " + ids)
   cves = ids.split(',')
-  if len(cves) == 1:
-    return "[?CVE=='" + cves[0] + "']"
-  else:
-    return "unsupported"
-  #return ".[] | select(.CVE == \"" + ids + "\")"
+  qry = "[?CVE=='" + cves[0] + "'"
+  if len(cves) > 1:
+    for cve in cves[1:]:
+      qry += "|| CVE =='" + cve + "'"
+
+  qry += "]"
+
+  print("Selecting by id: " + ids)
+  print("Query: " + qry )
+
+  return qry
+
 
 async def select_bug(keys):
   print("Selecting by bug:" + keys)
@@ -160,7 +167,7 @@ async def select_cvss3(cvss3_score):
 async def select_create(created_days_ago):
   print("Selecting by created days ago: "+ created_days_ago)
 
-async def paginate(page, per_page)
+async def paginate(page, per_page):
   print("Pagination is not yet supported")
 
 @app.route("/hydra/rest/securitydata/cve.json")
