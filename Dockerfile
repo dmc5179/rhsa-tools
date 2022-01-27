@@ -11,6 +11,7 @@ COPY ./data/cve.json ./data/
 COPY ./data/cvrf.json ./data/
 COPY ./data/oval.json ./data/
 COPY ./data/ovalstreams.json ./data/
+COPY ./cves ./data/cves/
 
 RUN chown -R 1001:0 ./
 USER 1001

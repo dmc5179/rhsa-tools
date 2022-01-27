@@ -5,8 +5,10 @@ from starlette.staticfiles import StaticFiles
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.responses import HTMLResponse
+from starlette.responses import PlainTextResponse
 from starlette.templating import Jinja2Templates
 from starlette.responses import JSONResponse
+from mimetypes import guess_type
 import uvicorn
 import json
 import jmespath
@@ -20,6 +22,17 @@ f.close()
 
 templates = Jinja2Templates(directory='templates')
 
+#routes = [
+#    Mount('/sites', StaticFiles(directory="sites")),
+#    Mount('/webassets', StaticFiles(directory="webassets")),
+#    Mount('/default', StaticFiles(directory="default")),
+#    Mount('/css', StaticFiles(directory="css"))
+#]
+
+def startup():
+  print("Ready to go")
+
+#app = Starlette(debug=True, routes=routes, on_startup=[startup])
 app = Starlette(debug=True)
 
 @app.route('/')
@@ -27,6 +40,51 @@ async def homepage(request):
     template = "index.html"
     context = {"request": request}
     return templates.TemplateResponse(template, context)
+
+@app.route("/css/{whatever:path}")
+async def get_css(request):
+    whatever = request.path_params.get("whatever")
+    with open("./css/"+whatever) as f:
+        content = f.read()
+
+    content_type, _ = guess_type(whatever)
+    return Response(content, media_type=content_type)
+
+@app.route("/default/{whatever:path}")
+async def get_default(request):
+    whatever = request.path_params.get("whatever")
+    with open("./default/"+whatever) as f:
+        content = f.read()
+
+    content_type, _ = guess_type(whatever)
+    return Response(content, media_type=content_type)
+
+@app.route("/sites/{whatever:path}")
+async def get_sites(request):
+    whatever = request.path_params.get("whatever")
+    with open("./sites/"+whatever) as f:
+        content = f.read()
+
+    content_type, _ = guess_type(whatever)
+    return Response(content, media_type=content_type)
+
+@app.route("/webassets/{whatever:path}")
+async def get_webassets(request):
+    whatever = request.path_params.get("whatever")
+    with open("./webassets/"+whatever) as f:
+        content = f.read()
+
+    content_type, _ = guess_type(whatever)
+    return Response(content, media_type=content_type)
+
+@app.route("/libs/{whatever:path}")
+async def get_webassets(request):
+    whatever = request.path_params.get("whatever")
+    with open("./libs/"+whatever) as f:
+        content = f.read()
+
+    content_type, _ = guess_type(whatever)
+    return Response(content, media_type=content_type)
 
 @app.route("/solutions/{id}")
 async def example(request):
@@ -87,11 +145,11 @@ async def cvrf(request):
 
 async def select_before(before):
   print("Selecting before: " + before)
-  return "[?public_date<='2016-10-21']"
-  #return 'map(. | select(.public_date |. != null and . != "")) | map(select(.public_date | . <= $e + "z")) | select(length>0)'
+  return "[?public_date<='"+before+"']"
 
 async def select_after(after):
   print("Selecting after: " + after)
+  return "[?public_date>='"+before+"']"
 
 async def select_value(key, values):
   v = values.split(',')
@@ -124,12 +182,31 @@ async def select_ids(ids):
   return qry
 
 async def select_package(keys):
-  print("Selecting by package: " + keys)
   packages = keys.split(',')
-  if len(packages) == 1:
-    return "[?affected_packages=='" + packages[0] + "']"
-  else:
-    return "unsupported"
+  #if len(packages) == 1:
+    #qry = "[?affected_packages!='null']|[? contains(affected_packages,'"+packages[0]+"')]"
+    #qry = "[?contains(not_null([*].affected_packages,''),'"+packages[0]+"')]"
+    #qry = "[].affected_packages!='null' | contains([].affected_packages,'exiv')"
+    #qry = "[?affected_packages!='null'] | length([?affected_packages]) > 0"
+    #qry = "[?length(affected_packages)]>0"
+    #qry = "[].affected_packages|[?contains(@, 'exiv')]"
+    #qry = "[?starts_with(affected_packages, 'exiv') == `true`]"
+    #qry = "[?starts_with(@, 'foo')]"
+    #qry = ".[] | select(.affected_packages[] | contains('exiv'))"
+  # This one works 
+  #qry = "[?starts_with(@,'exiv')]"
+  #qry = "[?starts_with(affected_packages[],'exiv')]"
+
+
+
+  #qry = "[?length(affected_packages[] ) >= to_number('1')] | [?starts_with(CVE,'CVE-2021-4142')]"
+  qry = "[?length(affected_packages[] ) >= to_number('1') && keys(affected_packages)starts_with(@,'exiv') ]"
+
+
+  print("Selecting by package: " + keys)
+  print("Qry: " + qry)
+
+  return qry
 
 # Much more complex. Needs to lookup the CVE full details
 async def select_product(keys):
@@ -141,7 +218,10 @@ async def select_product(keys):
     return "unsupported"
 
 async def select_cvss(cvss_score):
+  qry = "[?5<=cvss_score]"
   print("Selecting by cvss score: " + cvss_score)
+  print("Qry: " + qry)
+  return qry
 
 async def select_cvss3(cvss3_score):
   print("Selecting by cvss3 score: " + cvss3_score)
@@ -166,26 +246,27 @@ async def cve_search(request):
       jmes_qry = ""
       if key == "before":
         jmes_qry = await select_before(qp['before'])
-      #elif key == "after":
-      #  jmes_qry = await select_after(qp['after'])
+      elif key == "after":
+        jmes_qry = await select_after(qp['after'])
       elif key == "ids":
         jmes_qry = await select_value("CVE", qp['ids'])
       elif key == "bug":
         jmes_qry = await select_value("bugzilla", qp['bug'])
       elif key == "advisory":
+        # Might need to be its own function with affected_packages
         jmes_qry = await select_value("advisories", qp['advisory'])
       elif key == "severity":
         jmes_qry = await select_value("severity", qp['severity'])
-      #elif key == "package":
-      #  jmes_qry = await select_package(qp['package'])
+      elif key == "package":
+        jmes_qry = await select_package(qp['package'])
       #if key == "product":
       #  jmes_qry = await select_product(qp['product'])
       elif key == "cwe":
         jmes_qry = await select_value("CWE", qp['cwe'])
-      #elif key == "cvss_score":
-      #  jmes_qry = await select_cvss(qp['cvss_score'])
-      #elif key == "cvss3_score":
-      #  jmes_qry = await select_cvss3(qp['cvss3_score'])
+      elif key == "cvss_score":
+        jmes_qry = await select_cvss(qp['cvss_score'])
+      elif key == "cvss3_score":
+        jmes_qry = await select_cvss3(qp['cvss3_score'])
       #elif key == "created_days_ago":
       #  jmes_qry = await select_create(qp['created_days_ago'])
       elif key == "page":
@@ -196,6 +277,7 @@ async def cve_search(request):
         print(key + " is not a valid query parameter for this API ")
 
       if len(jmes_qry) > 0:
+        print("Query: " + jmes_qry)
         response = jmespath.search(jmes_qry, response)
 
     # Paginate response
@@ -204,14 +286,33 @@ async def cve_search(request):
 
     return JSONResponse(response)
 
-@app.route("/hydra/rest/securitydata/cve/{id}.json")
-async def cve(request):
-    qp = request.query_params
+#@app.route("/hydra/rest/securitydata/cve/{dan}")
+#async def cve(request):
+#    content = '%s %s' % (request.method, request.url.path)
+#    content = os.path.basename(os.path.normpath(content))
+#
+#    filename = './solutions/' + content
+#
+#    print("File: " + filename)
 
-    print(str(qp))
-    # > foo=bar
+#    if not os.path.isfile(filename):
+#        return Response(status_code=404)
+#
+#    with open(filename) as f:
+#        content = f.read()
 
-    return JSONResponse({k: v for (k, v) in qp.items()})
+  #print("CVE: " + str(cve))
+#  qp = request.query_params
+#  print("Returning CVE: " + cve)
+#  response = "[]"
+#  if len(qp.keys()) > 0:
+#    print("Checking: " + "./cves/"+qp[0]+".json")
+#    if os.path.exists("./cves/"+qp[0]+".json"):
+#      c = open("./cves/"+qp[0]+".json", "r")
+#      response = json.load(c)
+#      c.close()
+#
+#  return JSONResponse(response)
 
 @app.route('/error')
 async def error(request):
