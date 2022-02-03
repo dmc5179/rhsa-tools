@@ -183,25 +183,8 @@ async def select_ids(ids):
 
 async def select_package(keys):
   packages = keys.split(',')
-  #if len(packages) == 1:
-    #qry = "[?affected_packages!='null']|[? contains(affected_packages,'"+packages[0]+"')]"
-    #qry = "[?contains(not_null([*].affected_packages,''),'"+packages[0]+"')]"
-    #qry = "[].affected_packages!='null' | contains([].affected_packages,'exiv')"
-    #qry = "[?affected_packages!='null'] | length([?affected_packages]) > 0"
-    #qry = "[?length(affected_packages)]>0"
-    #qry = "[].affected_packages|[?contains(@, 'exiv')]"
-    #qry = "[?starts_with(affected_packages, 'exiv') == `true`]"
-    #qry = "[?starts_with(@, 'foo')]"
-    #qry = ".[] | select(.affected_packages[] | contains('exiv'))"
-  # This one works 
-  #qry = "[?starts_with(@,'exiv')]"
-  #qry = "[?starts_with(affected_packages[],'exiv')]"
-
-
-
-  #qry = "[?length(affected_packages[] ) >= to_number('1')] | [?starts_with(CVE,'CVE-2021-4142')]"
-  qry = "[?length(affected_packages[] ) >= to_number('1') && keys(affected_packages)starts_with(@,'exiv') ]"
-
+  if len(packages) == 1:
+    qry = "[?length(affected_packages[?starts_with(@, '"+packages[0]+"')])>to_number('0')]"
 
   print("Selecting by package: " + keys)
   print("Qry: " + qry)
