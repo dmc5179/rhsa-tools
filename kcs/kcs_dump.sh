@@ -21,7 +21,7 @@ PARAMS="q=${QUERY}&redhat_client=portal-search&rows=${ROWS}&start=${START}"
 rm -f ${FILE}
 #for f in kcs*.json
 #do
-  jq '.response.docs[].view_uri' kcs_results.json  | grep 'solutions\|articles' | tr -d '"' | sort -u > ${FILE}
+  jq -r '.response.docs[].view_uri' kcs_results.json  | grep 'solutions\|articles' | sort -u > ${FILE}
 #done
 
 exit 0
